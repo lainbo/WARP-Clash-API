@@ -1,258 +1,168 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hans">
+
 <head>
-    <meta charset="UTF-8">
-    <script src="https://cdn.bootcdn.net/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WARP Clash 订阅地址生成器</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 50px;
-            color: #333;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://jsd.onmicrosoft.cn/npm/@unocss/runtime"></script>
+  <script src="https://cdnjs.onmicrosoft.cn/ajax/libs/alpinejs/3.13.5/cdn.min.js" defer></script>
+  <link rel="stylesheet" href="https://s1.hdslb.com/bfs/static/jinkela/long/font/regular.css">
+  <title>Lainbo WARP 订阅地址生成器</title>
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
 
-        h1 {
-            margin-bottom: 20px;
-        }
+    ::selection {
+      background: #646cff;
+      color: #fff;
+    }
 
-        #passwordInput {
-            padding: 10px;
-            font-size: 16px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            margin-bottom: 20px;
-        }
+    html:lang(zh) body {
+      font-family: "HarmonyOS Sans SC", "HarmonyOS_Regular", system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
 
-        #qrcode {
-            max-width: 200px;
-        }
-
-        footer {
-            margin-top: 50px;
-            line-height: 0.5;
-        }
-
-        a {
-            color: #1e88e5;
-            text-decoration: none;
-        }
-
-        a:hover {
-            text-decoration: underline;
-        }
-
-        .warning {
-            max-width: 400px;
-            padding: 20px;
-            background-color: #fff9c4;
-            color: #807d62;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            margin: 0 auto 20px;
-        }
-
-        textarea {
-            resize: none;
-            border: none;
-            text-align: center;
-            width: 100%;
-            max-width: 500px;
-            font-size: 16px;
-            margin-bottom: 10px;
-            word-break: break-all;
-        }
-
-        textarea:focus {
-            outline: none;
-        }
-
-        .toast {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 10px 20px;
-            background-color: rgba(110, 255, 114);
-            color: #4caf50;
-            border-radius: 4px;
-            font-size: 16px;
-            opacity: 0;
-            transition: opacity 0.2s;
-            z-index: 1000;
-        }
-
-        .show {
-            opacity: 1;
-        }
-
-        .tip {
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
-    </style>
+    body {
+      margin: 0;
+    }
+  </style>
 </head>
+
 <body>
-<div id="toast" class="toast"></div>
-
-<div class="warning" style="display: none" id="ip-warn">
-    <p>您的域名看起来似乎是本地域名，这意味着您的订阅地址<b>无法</b>被局域网及公网访问。</p>
-</div>
-
-<h1>WARP Clash 订阅地址生成器</h1>
-<form action="javascript:generateLink()">
-    <div>
-        <label for="passwordInput"></label>
-        <input type="password" name="password" id="passwordInput" placeholder="输入您的SECRET_KEY">
+  <div x-data="subscriptionGenerator()" class="bg-gray-100 flex justify-center">
+    <div class="min-h-screen flex flex-col items-center w-800px pt-6">
+      <div class="bg-white rounded-lg shadow-lg w-full">
+        <div class="p-8 w-full">
+          <h1 class="text-2xl font-bold text-gray-700 mb-6">Lainbo WARP 订阅地址生成器</h1>
+          <template x-if="isLocal">
+            <div>
+              <p class="text-red-500">您的域名看起来似乎是本地域名，这意味着您的订阅地址<b>无法</b>被局域网及公网访问。</p>
+            </div>
+          </template>
+          <form class="select-none">
+            <div class="mb-4">
+              <label for="secret_key" class="block text-gray-700 text-sm font-medium mb-2">SECRET_KEY</label>
+              <input type="text" id="secret_key" name="secret_key" x-model.trim="formData.passwordInput"
+                class="block w-full p-2.5 bg-gray-100 border-0 shadow-sm text-gray-700 rounded-lg focus:outline-#646cff focus:bg-white"
+                placeholder="请输入SECRET_KEY">
+            </div>
+            <div class="flex items-center mb-4">
+              <input id="best_node" type="checkbox" x-model="formData.alwaysBest"
+                class="w-4 h-4 text-blue-600 bg-gray-100 rounded focus:ring-#646cff">
+              <label for="best_node" class="ml-2 text-sm font-medium text-gray-700">始终选择最优节点(不建议)</label>
+            </div>
+            <div class="flex items-center mb-4">
+              <input id="random_node_name" type="checkbox" x-model="formData.randomName"
+                class="w-4 h-4 text-blue-600 bg-gray-100 rounded focus:ring-#646cff">
+              <label for="random_node_name" class="ml-2 text-sm font-medium text-gray-700">随机节点名称</label>
+            </div>
+            <div class="flex items-center mb-4">
+              <input id="random_node_name" type="checkbox" x-model="formData.ipv6"
+                class="w-4 h-4 text-blue-600 bg-gray-100 rounded focus:ring-#646cff">
+              <label for="random_node_name" class="ml-2 text-sm font-medium text-gray-700">IPv6</label>
+            </div>
+            <div class="mb-4">
+              <label for="subscription_format" class="block text-gray-700 text-sm font-medium mb-2">订阅格式</label>
+              <select id="subscription_format" name="subscription_format" x-model="formData.proxyFormat"
+                class="block w-full p-2.5 bg-gray-100 border-0 shadow-sm text-gray-700 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-#646cff focus:border-#646cff">
+                <option value="full">完整订阅</option>
+                <option value="proxies_groups">Proxies & Proxy Groups</option>
+                <option value="proxies_only">仅包含Proxies</option>
+              </select>
+            </div>
+          </form>
+        </div>
+        <div class="relative flex justify-center">
+          <div class="absolute top-0 bottom-0 m-block-auto h-1px w-full bg-gray-200"></div>
+          <div class="mx-0 my-auto text-gray-500 bg-white z-1 px-2 text-sm">订阅链接</div>
+        </div>
+        <div class="w-full px-8 pb-8">
+          <template x-for="(item, index) in resultDataArr" :key="index">
+            <div>
+              <h2 class="text-xl font-semibold text-gray-700 mb-2" x-text="item.name"></h2>
+              <div class="flex items-center">
+                <div class="flex flex-col text-#646cff select-all w-full overflow-hidden break-all" x-text="item.value">
+                </div>
+              </div>
+            </div>
+          </template>
+          <div class="text-gray-400">
+            <p>以上所有不保证任何时段速度, 只保证连通性</p>
+          </div>
+        </div>
+      </div>
+      <p>
+        <a class="text-#646cff no-underline hover:text-blue-700" href="https://github.com/lainbo/WARP-Clash-API"
+          target="_blank">
+          GitHub
+        </a>
+      </p>
     </div>
-    <div>
-        <label>
-            <input type="checkbox" id="alwaysBest" onchange="generateLink()"> 始终选择最优节点
-        </label>
-        <label>
-            <input type="checkbox" id="randomName" onchange="generateLink()" checked> 随机节点名称
-        </label>
-        <label>
-            <input type="checkbox" id="ipv6" onchange="generateLink()"> IPv6
-        </label>
-    </div>
-    <div>
-        <br/>
-        <label for="proxyFormat">订阅格式：</label>
-        <select id="proxyFormat" onchange="generateLink()">
-            <option value="full">完整订阅</option>
-            <option value="with_groups">Proxies & Proxy Groups</option>
-            <option value="only_proxies">仅包含Proxies</option>
-        </select>
-    </div>
-</form>
-<center>
-    <h2>自动判断订阅类型</h2>
-    <textarea id="autoSubscriptionLink" rows="3" readonly onclick="copyText('autoSubscriptionLink')"></textarea>
-    <div id="qrcode_auto"></div>
-    <h2>Clash</h2>
-    <textarea id="subscriptionLink" rows="3" readonly onclick="copyText('subscriptionLink')"></textarea>
-    <div id="qrcode_clash"></div>
-    <h2>ShadowRocket</h2>
-    <textarea id="subShadowRocketSubscriptionLink" rows="3" readonly
-              onclick="copyText('subShadowRocketSubscriptionLink')"></textarea>
-    <div id="qrcode_sr"></div>
-    <h2>Surge</h2>
-    <textarea id="subSurgeScriptionLink" rows="3" readonly onclick="copyText('subSurgeScriptionLink')"></textarea>
-    <h2>Sing-Box</h2>
-    <textarea id="subSingBoxScriptionLink" rows="3" readonly onclick="copyText('subSingBoxScriptionLink')"></textarea>
-    <h2>Loon</h2>
-    <textarea id="subLoonScriptionLink" rows="3" readonly onclick="copyText('subLoonScriptionLink')"></textarea>
-    <h2>Wireguard</h2>
-    <textarea id="WireguardLink" rows="3" readonly onclick="copyText('WireguardLink')"></textarea>
-    <div id="qrcode_wg"></div>
-    <h2>账户信息</h2>
-    <a href="#" title="账户信息" target="_blank" id="AccountLink">点击查看</a>
-</center>
+  </div>
 
-<footer>
-    <p>Powered by <a href="https://github.com/vvbbnn00/WARP-Clash-API">WARP Clash API</a></p>
-</footer>
 
-<script>
-    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname === '0.0.0.0') {
-        document.getElementById('ip-warn').style.display = 'block';
-    }
+  <script>
+    function subscriptionGenerator() {
+      return {
+        isLocal: false,
+        formData: {
+          passwordInput: '',
+          alwaysBest: false,
+          randomName: false,
+          proxyFormat: 'full',
+          ipv6: false,
+        },
+        resultDataArr: [
+          { name: '自动判断订阅类型', key: 'autoSubscriptionLink', value: '' },
+          { name: 'Clash', key: 'subscriptionLink', value: '' },
+          { name: 'ShadowRocket', key: 'subShadowRocketSubscriptionLink', value: '' },
+          { name: 'Loon', key: 'subLoonScriptionLink', value: '' },
+          { name: 'Surge', key: 'subSurgeScriptionLink', value: '' },
+          { name: 'Wireguard', key: 'WireguardLink', value: '' },
+        ],
+        init() {
+          this.checkLocal();
+          this.generateLink();
+          this.$watch('formData', () => {
+            this.generateLink();
+          });
+        },
+        checkLocal() {
+          const localUrls = ['localhost', '127.0.0.1', '0.0.0.0'];
+          this.isLocal = localUrls.includes(window.location.hostname);
+        },
+        generateLink() {
+          const { passwordInput: password, alwaysBest: best, randomName, proxyFormat, ipv6 } = this.formData;
+          const baseUrl = `${window.location.protocol}//${window.location.host}/`;
+          const queryParams = new URLSearchParams({ best, randomName, proxyFormat, ipv6 });
 
-    function generateLink() {
-        const password = document.getElementById('passwordInput').value;
-        const best = document.getElementById('alwaysBest').checked;
-        const randomName = document.getElementById('randomName').checked;
-        const proxyFormat = document.getElementById('proxyFormat').value;
-        const ipv6 = document.getElementById('ipv6').checked;
-        // Get the directory part of location.pathname
-        const basePath = location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1);
-        // Construct the baseUrl
-        const baseUrl = location.origin + basePath;
-        const queryParams = new URLSearchParams({
-            best,
-            randomName,
-            proxyFormat,
-            ipv6
-        });
-
-        if (password.length) {
+          if (password.length) {
             queryParams.append('key', password);
+          }
+
+          const queryParamsString = queryParams.toString();
+          const apiPaths = {
+            autoSubscriptionLink: 'sub',
+            subscriptionLink: 'api/clash',
+            subShadowRocketSubscriptionLink: 'api/shadowrocket',
+            subLoonScriptionLink: 'api/loon',
+            subSurgeScriptionLink: 'api/surge',
+            WireguardLink: 'api/wireguard',
+          };
+
+          this.resultDataArr.forEach(item => {
+            const path = apiPaths[item.key];
+            if (path) {
+              item.value = `${baseUrl}${path}?${queryParamsString}`;
+            }
+          });
         }
 
-        document.getElementById('autoSubscriptionLink').textContent = baseUrl + "sub?" + queryParams.toString();
-        document.getElementById('subscriptionLink').textContent = baseUrl + "api/clash?" + queryParams.toString();
-        document.getElementById('subShadowRocketSubscriptionLink').textContent = baseUrl + "api/shadowrocket?" + queryParams.toString();
-        document.getElementById('subSurgeScriptionLink').textContent = baseUrl + "api/surge?" + queryParams.toString();
-        document.getElementById('subSingBoxScriptionLink').textContent = baseUrl + "api/sing-box?" + queryParams.toString();
-        document.getElementById('subLoonScriptionLink').textContent = baseUrl + "api/loon?" + queryParams.toString();
-        document.getElementById('WireguardLink').textContent = baseUrl + "api/wireguard?" + queryParams.toString();
-        document.getElementById('AccountLink').href = baseUrl + "api/account?" + queryParams.toString();
-
-        const qrcodeContainerClash = document.getElementById('qrcode_clash');
-        qrcodeContainerClash.innerHTML = '';
-        const qrcodeClash = new QRCode(qrcodeContainerClash, {
-            text: document.getElementById('subscriptionLink').textContent,
-            width: 200,
-            height: 200
-        });
-
-        const qrcodeContainerAuto = document.getElementById('qrcode_auto');
-        qrcodeContainerAuto.innerHTML = '';
-        const qrcodeAuto = new QRCode(qrcodeContainerAuto, {
-            text: document.getElementById('autoSubscriptionLink').textContent,
-            width: 200,
-            height: 200
-        });
-
-        const qrcodeContainerSr = document.getElementById('qrcode_sr');
-        qrcodeContainerSr.innerHTML = '';
-        const qrcodeSr = new QRCode(qrcodeContainerSr, {
-            text: document.getElementById('subShadowRocketSubscriptionLink').textContent,
-            width: 200,
-            height: 200
-        });
-
-        getQrCodeWg();
+      };
     }
-
-    function copyText(elem) {
-        const textarea = document.getElementById(elem);
-        textarea.select();
-        document.execCommand('copy');
-        showToast("已复制到剪贴板");
-    }
-
-
-    function showToast(message) {
-        const toast = document.getElementById('toast');
-        toast.textContent = message;
-        toast.classList.add('show');
-        setTimeout(() => {
-            toast.classList.remove('show');
-        }, 1000);
-    }
-
-    function getQrCodeWg() {
-        const qrcodeContainerWg = document.getElementById('qrcode_wg');
-        const url = document.getElementById('WireguardLink').textContent;
-        fetch(url, {method: 'GET'}).then(res => res.text()).then(res => {
-            qrcodeContainerWg.innerHTML = '';
-            const qrcode2 = new QRCode(qrcodeContainerWg, {
-                text: res,
-                width: 200,
-                height: 200
-            });
-        }).catch(err => {
-            showToast(`Error ${err.status}: ${err.statusText}`)
-        });
-    }
-
-    generateLink()
-</script>
-
+  </script>
 </body>
+
 </html>
